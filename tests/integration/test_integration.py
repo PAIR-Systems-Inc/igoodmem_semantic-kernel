@@ -40,11 +40,11 @@ _SKIP_REASON = (
 
 
 def _integration_settings() -> GoodMemSettings | None:
-    api_key = os.environ.get("GOODMEM_API_KEY")
+    api_key = os.getenv("GOODMEM_API_KEY")
     if not api_key:
         return None
     return GoodMemSettings(
-        base_url=os.environ.get("GOODMEM_BASE_URL", "http://localhost:8080"),
+        base_url=os.getenv("GOODMEM_BASE_URL", "http://localhost:8080"),
         api_key=api_key,
     )
 

@@ -28,7 +28,7 @@ class Note:
 
 async def main() -> None:
     for var in ("GOODMEM_API_KEY", "GOODMEM_BASE_URL", "GOODMEM_VERIFY_SSL"):
-        if not os.environ.get(var):
+        if not os.getenv(var):
             raise SystemExit(f"Set {var} before running this script.")
 
     async with GoodMemCollection(record_type=Note, collection_name="my-notes") as coll:

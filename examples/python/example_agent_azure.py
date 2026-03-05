@@ -39,7 +39,7 @@ class Memory:
 
 async def main() -> None:
     for var in ("GOODMEM_API_KEY", "GOODMEM_BASE_URL", "GOODMEM_VERIFY_SSL", "AZURE_OPENAI_API_KEY", "AZURE_OPENAI_ENDPOINT", "AZURE_OPENAI_CHAT_DEPLOYMENT_NAME"):
-        if not os.environ.get(var):
+        if not os.getenv(var):
             raise SystemExit(f"Set {var} before running this script.")
 
     async with GoodMemCollection(record_type=Memory, collection_name="agent-memory") as collection:
@@ -51,7 +51,7 @@ async def main() -> None:
             Memory(content="Python was created by Guido van Rossum and first released in 1991.", topic="technology"),
             Memory(content="The speed of light is approximately 299,792 km/s.", topic="science"),
             Memory(content="Shakespeare wrote Hamlet, Macbeth, and Romeo and Juliet.", topic="literature"),
-            Memory(content="Semantic Kernel is a Microsoft SDK for building AI agents.", topic="technology")
+            Memory(content="Semantic Kernel is a Microsoft SDK for building AI agents.", topic="technology"),
         ])
         print(f"Seeded 5 memories into the 'agent-memory' GoodMem space.")
         print("Waiting for embeddings...")
@@ -98,9 +98,9 @@ async def main() -> None:
             name="MemoryAgent",
             service=AzureChatCompletion(
                 deployment_name=os.environ["AZURE_OPENAI_CHAT_DEPLOYMENT_NAME"],
-                **({"api_version": os.environ.get("AZURE_OPENAI_API_VERSION")} if os.environ.get("AZURE_OPENAI_API_VERSION") else {}),
+                **({"api_version": os.getenv("AZURE_OPENAI_API_VERSION")} if os.getenv("AZURE_OPENAI_API_VERSION") else {}),
                 # if above line doesn't work you can try this:
-                # api_version=os.environ.get("AZURE_OPENAI_API_VERSION"),
+                # api_version=os.getenv("AZURE_OPENAI_API_VERSION"),
             ),
             instructions=(
                 "You are a helpful assistant with access to a long-term memory store. "

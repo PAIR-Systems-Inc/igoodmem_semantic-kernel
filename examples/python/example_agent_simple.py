@@ -41,7 +41,7 @@ class Memory:
 
 async def main() -> None:
     for var in ("GOODMEM_API_KEY", "OPENAI_API_KEY", "GOODMEM_BASE_URL", "GOODMEM_VERIFY_SSL"):
-        if not os.environ.get(var):
+        if not os.getenv(var):
             raise SystemExit(f"Set {var} before running this script.")
 
     # recommended models:
@@ -66,7 +66,7 @@ async def main() -> None:
             Memory(content="Python was created by Guido van Rossum and first released in 1991.", topic="technology"),
             Memory(content="The speed of light is approximately 299,792 km/s.", topic="science"),
             Memory(content="Shakespeare wrote Hamlet, Macbeth, and Romeo and Juliet.", topic="literature"),
-            Memory(content="Semantic Kernel is a Microsoft SDK for building AI agents.", topic="technology")
+            Memory(content="Semantic Kernel is a Microsoft SDK for building AI agents.", topic="technology"),
         ])
         print(f"Seeded 5 memories into the 'agent-memory' GoodMem space.")
         print("Waiting for embeddings...")
