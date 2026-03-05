@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 """Option A example — GoodMem collection wired into a Semantic Kernel agent.
 
-The agent has a memory search tool backed by GoodMem.  When the user asks
+The agent has a memory search tool backed by GoodMem. When the user asks
 a question, the LLM decides whether to call the tool to look up relevant
 memories before composing its answer.
 
-Requirements (in addition to goodmem-sk):
+Requirement (in addition to goodmem-semantic-kernel):
     pip install semantic-kernel openai
 
 Environment variables:
@@ -13,36 +13,21 @@ Environment variables:
     GOODMEM_VERIFY_SSL  — Set to 'false' for self-signed certs
     GOODMEM_API_KEY     — GoodMem API key
     OPENAI_API_KEY      — OpenAI key (used by the chat LLM)
-
-Usage:
-    GOODMEM_BASE_URL=https://localhost:8080 \
-    GOODMEM_VERIFY_SSL=false \
-    GOODMEM_API_KEY=your-key \
-    OPENAI_API_KEY=sk-... \
-    python example_agent.py
 """
 
 import asyncio
 import os
-import re
 from dataclasses import dataclass
 from typing import Annotated
-
 import openai
-
 from semantic_kernel.agents import AgentThread, ChatCompletionAgent
 from semantic_kernel.connectors.ai import FunctionChoiceBehavior
 from semantic_kernel.connectors.ai.open_ai import OpenAIChatCompletion
 from semantic_kernel.data.vector import VectorStoreField, vectorstoremodel
 from semantic_kernel.functions import KernelParameterMetadata, KernelPlugin
-
 from goodmem_semantic_kernel import GoodMemCollection
 
-
-# ---------------------------------------------------------------------------
-# Data model
-# ---------------------------------------------------------------------------
-
+# Data model - id is key, content is text to store in GoodMem, topic is for easier searching
 @vectorstoremodel
 @dataclass
 class Memory:
@@ -50,77 +35,37 @@ class Memory:
     content: Annotated[str, VectorStoreField("data", type="str")] = ""
     topic: Annotated[str | None, VectorStoreField("data")] = None
 
-
-# ---------------------------------------------------------------------------
-# Seed data
-# ---------------------------------------------------------------------------
-
-SEED_MEMORIES = [
-    Memory(content="The Eiffel Tower is located in Paris, France.", topic="geography"),
-    Memory(content="Python was created by Guido van Rossum and first released in 1991.", topic="technology"),
-    Memory(content="The speed of light is approximately 299,792 km/s.", topic="science"),
-    Memory(content="Shakespeare wrote Hamlet, Macbeth, and Romeo and Juliet.", topic="literature"),
-    Memory(content="The Pacific Ocean is the largest ocean on Earth.", topic="geography"),
-    Memory(content="Semantic Kernel is a Microsoft SDK for building AI agents.", topic="technology"),
-]
-
-
-# ---------------------------------------------------------------------------
-# OpenAI Model validation
-# ---------------------------------------------------------------------------
-
-async def _resolve_openai_model(provided: str | None) -> str:
-    """Return a validated OpenAI model ID, prompting the user if needed."""
-    from_arg = provided is not None
-    model = provided or ""
-    while True:
-        if not model:
-            model = input("Enter the OpenAI model to use (e.g. gpt-4o): ").strip()
-
-        _MODEL_REGEX = re.compile(r"^[a-zA-Z0-9][a-zA-Z0-9:._/-]*$")
-        if not _MODEL_REGEX.match(model):
-            msg = (
-                f"Invalid model name {model!r}: use only letters, digits, "
-                "hyphens, dots, colons, slashes, or underscores."
-            )
-            if from_arg:
-                raise SystemExit(msg)
-            print(msg)
-            model = ""
-            continue
-
-        try:
-            async with openai.AsyncOpenAI() as client:
-                await client.models.retrieve(model)
-            return model
-        except openai.AuthenticationError:
-            raise SystemExit("OPENAI_API_KEY is invalid or expired.")
-        except (openai.NotFoundError, openai.PermissionDeniedError) as exc:
-            msg = f"Model {model!r} is not available: {exc.message}"
-            if from_arg:
-                raise SystemExit(msg)
-            print(msg)
-            model = ""
-
-# ---------------------------------------------------------------------------
-# Main
-# ---------------------------------------------------------------------------
-
-async def main(openai_model: str | None = None) -> None:
+async def main() -> None:
     # check to make sure user has set the required environment variables and valid openai model
-    for var in ("GOODMEM_API_KEY", "OPENAI_API_KEY"):
+    for var in ("GOODMEM_API_KEY", "OPENAI_API_KEY", "GOODMEM_BASE_URL", "GOODMEM_VERIFY_SSL"):
         if not os.environ.get(var):
             raise SystemExit(f"Set {var} before running this script.")
 
-    openai_model = await _resolve_openai_model(openai_model)
+    # recommended models:
+    # gpt-4o-mini (recommended - cheap and fast)
+    # gpt-4o (general purpose)
+    # gpt-3.5-turbo (legacy, widely supported)
+    openai_model = input("Enter the OpenAI model to use (recommended: gpt-4o-mini): ").strip()
+    try:
+        async with openai.AsyncOpenAI() as client:
+            await client.models.retrieve(openai_model)
+    except openai.AuthenticationError:
+        raise SystemExit("OPENAI_API_KEY is invalid or expired.")
+    except (openai.NotFoundError, openai.PermissionDeniedError) as exc:
+        raise SystemExit(f"Model {openai_model!r} is not available: {exc.message}")
 
     async with GoodMemCollection(record_type=Memory, collection_name="agent-memory") as collection:
         # 1. Fresh space with seed data
         await collection.ensure_collection_deleted()
         await collection.ensure_collection_exists()
-        await collection.upsert(SEED_MEMORIES)
-        print(f"Seeded {len(SEED_MEMORIES)} memories into 'agent-memory'.")
-
+        await collection.upsert([
+            Memory(content="The Pacific Ocean is the largest ocean on Earth.", topic="geography"),
+            Memory(content="Python was created by Guido van Rossum and first released in 1991.", topic="technology"),
+            Memory(content="The speed of light is approximately 299,792 km/s.", topic="science"),
+            Memory(content="Shakespeare wrote Hamlet, Macbeth, and Romeo and Juliet.", topic="literature"),
+            Memory(content="Semantic Kernel is a Microsoft SDK for building AI agents.", topic="technology")
+        ])
+        print(f"Seeded 5 memories into 'agent-memory'.")
         print("Waiting for embeddings...")
         await asyncio.sleep(3)
 
@@ -135,8 +80,7 @@ async def main(openai_model: str | None = None) -> None:
                     function_name="recall",
                     description=(
                         "Search long-term memory for facts relevant to a query. "
-                        "Call this before answering questions about facts, geography, "
-                        "science, technology, or literature."
+                        "Call this before answering questions about science, technology, geography, or literature."
                     ),
                     parameters=[
                         KernelParameterMetadata(
@@ -180,7 +124,6 @@ async def main(openai_model: str | None = None) -> None:
             try:
                 user_input = input("You: ").strip()
             except (KeyboardInterrupt, EOFError):
-                print("\nBye!")
                 break
 
             if not user_input or user_input.lower() == "exit":
@@ -189,10 +132,6 @@ async def main(openai_model: str | None = None) -> None:
             result = await agent.get_response(messages=user_input, thread=thread)
             thread = result.thread
             print(f"Agent: {result.content}\n")
-
-        # 5. Uncomment to clean up:
-        # await collection.ensure_collection_deleted()
-        # print("Memory space deleted.")
 
 
 if __name__ == "__main__":
