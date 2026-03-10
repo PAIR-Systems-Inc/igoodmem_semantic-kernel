@@ -41,8 +41,12 @@ pip install -e .
 
 ### for .NET
 
-`sudo apt install dotnet-host-8.0`
-`sudo apt install dotnet-sdk-8.0`
+```bash
+sudo apt install dotnet-host-8.0
+```
+```bash
+sudo apt install dotnet-sdk-8.0
+```
 
 ## Configuration
 
