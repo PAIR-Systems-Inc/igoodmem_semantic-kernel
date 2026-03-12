@@ -2,6 +2,18 @@
 CLAUDE.md
 .claudeignore
 
+# Java
+target/
+*.class
+*.jar
+*.war
+*.ear
+.classpath
+.project
+.settings/
+*.iml
+hs_err_pid*
+
 # .NET
 bin/
 obj/
