@@ -2,7 +2,7 @@
 
 A [GoodMem](https://goodmem.ai) connector for [Microsoft Semantic Kernel](https://github.com/microsoft/semantic-kernel).
 
-Implements Semantic Kernel's `VectorStoreCollection` and `VectorStore` interfaces so agents built on Semantic Kernel can store and retrieve memories from a GoodMem server — no local embedding model required.
+Implements Semantic Kernel's `VectorStoreCollection` and `VectorStore` interfaces so agents built on Semantic Kernel can store and retrieve memories from a GoodMem server without having to configure your own data processing pipeline
 
 ## What is GoodMem?
 
@@ -23,7 +23,12 @@ Each **Space** can be configured with embedders and/or chunking strategies. Each
 
 ---
 
-# Quickstart
+## Quickstart
+
+1. [installation](#installation)
+2. [configuration](#configuration)
+3. [run sample files](#running-the-samples)
+4. create your own integration
 
 ## Installation
 
@@ -175,11 +180,11 @@ class Note:
 - All other `"data"` fields are stored as metadata and returned on search results.
 - `"vector"` fields are accepted for interface compatibility but ignored — GoodMem embeds server-side.
 
-We have three example patterns provided.
+We have three example patterns provided in the samples directory. We recommend option A, but choose what works for you.
 
-Option A is the recommended pattern for production agents since the LLM decides when to call memory and what to search for, rather than the application hardcoding those decisions.
+Option A (`samples/python/example_agent.py`) is the recommended pattern for production agents since the LLM decides when to call memory and what to search for, rather than the application hardcoding those decisions.
 
-### Option A — Wired into a Semantic Kernel agent
+### Option A: Wired into a Semantic Kernel agent
 
 ```python
 from semantic_kernel.agents import AgentThread, ChatCompletionAgent
@@ -213,66 +218,26 @@ async def main():
         )
 
         thread: AgentThread | None = None
-        result = await agent.get_response(messages="Where is the Eiffel Tower?", thread=thread)
+        result = await agent.get_response(messages="Where is the Golden Gate Bridge?", thread=thread)
         print(result.content)
 ```
 
-### Option B — Single collection
+### Option B: Single collection
 
-```python
-import asyncio
-from goodmem_semantic_kernel import GoodMemCollection
+see [example_single_collection.py](samples/python/example_single_collection.py)
 
-async def main():
-    async with GoodMemCollection(record_type=Note, collection_name="my-notes") as coll:
-        await coll.ensure_collection_exists()
+### Option C: Store (multiple collections, shared connection)
 
-        keys = await coll.upsert([
-            Note(content="The Eiffel Tower is in Paris", source="facts"),
-            Note(content="Buy milk and eggs", source="shopping"),
-        ])
-
-        await asyncio.sleep(3)  # wait for server-side embedding
-
-        results = await coll.search("grocery list", top=5)
-        async for r in results.results:
-            print(f"[{r.score:.3f}] {r.record.content}  (source={r.record.source})")
-
-asyncio.run(main())
-```
-
-### Option C — Store (multiple collections, shared connection)
-
-```python
-from goodmem_semantic_kernel import GoodMemStore
-
-async def main():
-    async with GoodMemStore() as store:
-        print(await store.list_collection_names())
-
-        notes = store.get_collection(Note, collection_name="notes")
-        todos = store.get_collection(Note, collection_name="todos")
-
-        await notes.ensure_collection_exists()
-        await todos.ensure_collection_exists()
-
-        await notes.upsert(Note(content="Mount Fuji is in Japan"))
-        await todos.upsert(Note(content="Call the dentist"))
-```
+see [example_single_store.py](samples/python/example_single_store.py)
 
 ## Behavior notes
 
-**No local embedding.** Never pass an `embedding_generator` — GoodMem embeds content server-side. The parameter is accepted for interface compatibility and silently ignored.
-
-**Upsert semantics.** GoodMem memories are immutable. If you `upsert` a record with an existing `id`, the connector deletes the old memory and creates a new one.
-
-**`content` is write-only in GoodMem.** The server does not return `originalContent` in search responses. Retrieved text comes from `chunkText` (a chunk of the original), which the connector maps back to your `content` field transparently.
-
-**Score convention.** `relevanceScore` from the GoodMem API is a raw pgvector value where lower means more similar. The connector negates it before returning, so SK's standard convention (higher = more relevant) is preserved.
-
-**Filters not supported.** Passing `filter=` to `search()` raises `VectorStoreOperationNotSupportedException`. Post-filter results in application code if needed.
-
-**Pre-computed vectors not supported.** Passing `vector=` to `search()` raises the same exception. Pass text only.
+- **No local embedding.** Never pass an `embedding_generator` — GoodMem embeds content server-side. The parameter is accepted for interface compatibility and silently ignored.
+- **Upsert semantics.** GoodMem memories are immutable. If you `upsert` a record with an existing `id`, the connector deletes the old memory and creates a new one.
+- **`content` is write-only in GoodMem.** The server does not return `originalContent` in search responses. Retrieved text comes from `chunkText` (a chunk of the original), which the connector maps back to your `content` field transparently.
+- **Score convention.** `relevanceScore` from the GoodMem API is a raw pgvector value where lower means more similar. The connector negates it before returning, so SK's standard convention (higher = more relevant) is preserved.
+-  **Filters not supported.** Passing `filter=` to `search()` raises `VectorStoreOperationNotSupportedException`. Post-filter results in application code if needed.
+-  **Pre-computed vectors not supported.** Passing `vector=` to `search()` raises the same exception. Pass text only.
 
 ## Project structure
 
