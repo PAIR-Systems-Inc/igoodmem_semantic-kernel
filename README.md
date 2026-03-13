@@ -23,7 +23,11 @@ Each **Space** can be configured with embedders and/or chunking strategies. Each
 
 ---
 
+# Quickstart
+
 ## Installation
+
+### Python (recommended)
 
 **Requirements:** Python 3.10+ and a running GoodMem server.
 
@@ -39,13 +43,38 @@ cd goodmem-semantic-kernel
 pip install -e .
 ```
 
-### for .NET
+### .NET (debian/ubuntu)
 
 ```bash
-sudo apt install dotnet-host-8.0
-```
-```bash
 sudo apt install dotnet-sdk-8.0
+```
+
+Build the connector from source:
+
+```bash
+dotnet build dotnet/GoodMem.SemanticKernel/GoodMem.SemanticKernel.csproj
+```
+
+### Java (debian/ubuntu)
+
+**Requirements:** JDK 17+ (JDK 21 recommended) and Maven 3.6+.
+
+Install JDK 21 via SDKMAN (recommended):
+
+```bash
+sdk install java 21.0.5-tem
+```
+
+Or via apt:
+
+```bash
+sudo apt install openjdk-21-jdk
+```
+
+Build and install the connector into your local Maven repository:
+
+```bash
+mvn install -f java/pom.xml -DskipTests
 ```
 
 ## Configuration
@@ -65,7 +94,66 @@ export GOODMEM_VERIFY_SSL=true_or_false
 | `GOODMEM_EMBEDDER_ID` | No | auto-detected | UUID of the embedder to use |
 | `GOODMEM_VERIFY_SSL` | No | `false` | Set to `false` for self-signed certs, set to `true` if you setup custom TLS certs|
 
-## Quickstart
+## Running the samples
+
+### Python
+
+```bash
+cd samples/python
+
+# Option A — agent with memory tool (also requires OPENAI_API_KEY)
+OPENAI_API_KEY=your_openai_key_here
+python example_agent.py
+
+# Option B — single collection
+python example_single_collection.py
+
+# Option C — store with multiple collections
+python example_store.py
+```
+
+If a sample fails, double-check [Configuration](#configuration) or run inside a virtual environment:
+
+```bash
+python3 -m venv venv
+source venv/bin/activate
+```
+
+### .NET
+
+```bash
+cd samples/dotnet/ExampleAgent
+dotnet run
+```
+
+Each sample lists its required environment variables at the top of `Program.cs`.
+
+### Java
+
+Build the connector once before running any sample:
+
+```bash
+mvn install -f java/pom.xml -DskipTests
+```
+
+Then run any sample:
+
+```bash
+cd samples/java/ExampleAgent
+mvn compile exec:java
+```
+
+Each sample lists its required environment variables in the file header.
+
+## Testing
+
+```bash
+# Unit tests (no server required)
+pytest python/tests/unit/
+
+# Integration tests (requires a live GoodMem server)
+GOODMEM_API_KEY=your_key_here pytest -m integration
+```
 
 ### Define a data model
 
@@ -172,39 +260,6 @@ async def main():
         await todos.upsert(Note(content="Call the dentist"))
 ```
 
-## Running the samples
-
-```bash
-cd samples/python
-
-# Option A — agent with memory tool (also requires OPENAI_API_KEY)
-OPENAI_API_KEY=your_openai_key_here
-python example_agent.py
-
-# Option B — single collection
-python example_single_collection.py
-
-# Option C — store with multiple collections
-python example_store.py
-```
-
-If a sample fails, double-check [Configuration](#configuration) or run inside a virtual environment:
-
-```bash
-python3 -m venv venv
-source venv/bin/activate
-```
-
-## Testing
-
-```bash
-# Unit tests (no server required)
-pytest python/tests/unit/
-
-# Integration tests (requires a live GoodMem server)
-GOODMEM_API_KEY=your_key_here pytest -m integration
-```
-
 ## Behavior notes
 
 **No local embedding.** Never pass an `embedding_generator` — GoodMem embeds content server-side. The parameter is accepted for interface compatibility and silently ignored.
@@ -235,9 +290,34 @@ goodmem-semantic-kernel/           ← repo root
 │       └── integration/       # Live integration tests (require GoodMem server)
 ├── dotnet/
 │   └── GoodMem.SemanticKernel/    ← .NET connector library
+├── java/
+│   ├── pom.xml                    ← parent Maven POM
+│   └── goodmem-semantic-kernel/   ← Java connector library
+│       └── src/main/java/ai/goodmem/semantickernel/
+│           ├── GoodMemCollection.java   # Typed CRUD + semantic search (Reactive)
+│           ├── GoodMemVectorStore.java  # Factory for multiple collections
+│           ├── GoodMemPlugin.java       # SK KernelPlugin: save + recall functions
+│           ├── GoodMemSchema.java       # Reflection engine for @GoodMemKey/@GoodMemData
+│           ├── GoodMemKey.java          # Annotation: marks the memory ID field
+│           ├── GoodMemData.java         # Annotation: marks content/metadata fields
+│           ├── GoodMemClient.java       # Async HTTP client (GoodMem REST API)
+│           ├── GoodMemOptions.java      # Configuration (reads GOODMEM_* env vars)
+│           └── GoodMemException.java    # Runtime exception wrapper
 ├── samples/
 │   ├── python/                    ← Runnable Python samples (Options A, B, C)
-│   └── dotnet/                    ← Runnable .NET samples
+│   ├── dotnet/                    ← Runnable .NET samples
+│   │   ├── ExampleStore/          # GoodMemVectorStore — multiple collections
+│   │   ├── ExampleAgent/          # SK agent with memory plugin (OpenAI)
+│   │   ├── ExampleAgentNvidia/    # SK agent with NVIDIA NIM
+│   │   ├── ExampleAgentHuggingFace/ # SK agent with Hugging Face Inference API
+│   │   └── ExampleAgentAzure/     # SK agent with Azure OpenAI
+│   └── java/                      ← Runnable Java samples
+│       ├── ExampleStore/          # GoodMemVectorStore — multiple collections
+│       ├── ExampleCollection/     # Single GoodMemCollection — CRUD + search
+│       ├── ExampleAgent/          # SK agent with GoodMemPlugin (OpenAI)
+│       ├── ExampleAgentNvidia/    # SK agent with NVIDIA NIM
+│       ├── ExampleAgentHuggingFace/ # SK agent with Hugging Face Inference API
+│       └── ExampleAgentAzure/     # SK agent with Azure OpenAI
 └── pyproject.toml
 ```
 
