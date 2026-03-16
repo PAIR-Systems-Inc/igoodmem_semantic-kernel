@@ -251,10 +251,9 @@ goodmem-semantic-kernel/           ← repo root
 │   │   ├── settings.py        # GoodMemSettings (Pydantic, reads GOODMEM_* env vars)
 │   │   └── store.py           # VectorStore implementation
 │   └── tests/
-│       ├── unit/              # Mocked unit tests (no server required)
-│       └── integration/       # Live integration tests (require GoodMem server)
 ├── dotnet/
 │   └── GoodMem.SemanticKernel/    ← .NET connector library
+│   └── GoodMem.SemanticKernel.Tests/
 ├── java/
 │   ├── pom.xml                    ← parent Maven POM
 │   └── goodmem-semantic-kernel/   ← Java connector library
@@ -269,20 +268,9 @@ goodmem-semantic-kernel/           ← repo root
 │           ├── GoodMemOptions.java      # Configuration (reads GOODMEM_* env vars)
 │           └── GoodMemException.java    # Runtime exception wrapper
 ├── samples/
-│   ├── python/                    ← Runnable Python samples (Options A, B, C)
+│   ├── python/                    ← Runnable Python samples
 │   ├── dotnet/                    ← Runnable .NET samples
-│   │   ├── ExampleStore/          # GoodMemVectorStore — multiple collections
-│   │   ├── ExampleAgent/          # SK agent with memory plugin (OpenAI)
-│   │   ├── ExampleAgentNvidia/    # SK agent with NVIDIA NIM
-│   │   ├── ExampleAgentHuggingFace/ # SK agent with Hugging Face Inference API
-│   │   └── ExampleAgentAzure/     # SK agent with Azure OpenAI
 │   └── java/                      ← Runnable Java samples
-│       ├── ExampleStore/          # GoodMemVectorStore — multiple collections
-│       ├── ExampleCollection/     # Single GoodMemCollection — CRUD + search
-│       ├── ExampleAgent/          # SK agent with GoodMemPlugin (OpenAI)
-│       ├── ExampleAgentNvidia/    # SK agent with NVIDIA NIM
-│       ├── ExampleAgentHuggingFace/ # SK agent with Hugging Face Inference API
-│       └── ExampleAgentAzure/     # SK agent with Azure OpenAI
 └── pyproject.toml
 ```
 
