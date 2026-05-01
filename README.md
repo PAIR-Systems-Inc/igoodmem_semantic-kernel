@@ -1,4 +1,4 @@
-# goodmem-semantic-kernel
+# igoodmem_semantic-kernel
 
 A [GoodMem](https://goodmem.ai) connector for [Microsoft Semantic Kernel](https://github.com/microsoft/semantic-kernel).
 
